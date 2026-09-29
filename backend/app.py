@@ -26,6 +26,7 @@ import requests
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 
+
 app = Flask(__name__)
 
 # El frontend vive en el puerto 3000 y esto en el 8080: dos origenes, asi que
@@ -109,6 +110,33 @@ def health():
     #
     # Pon un timeout corto (5s): esto es un chequeo de salud, no una pregunta
     # al modelo. Si Ollama esta caido tiene que decirlo rapido.
+    try:
+        r = requests.get(f"{OLLAMA}/api/tags", timeout=5)
+        r.raise_for_status()
+        instalados = [m["name"] for m in r.json().get("models", [])]
+    except requests.RequestException as e:
+        return jsonify({
+            "status": "degradado",
+            "modelo": MODELO,
+            "detalle": f"Ollama no responde en {OLLAMA}: {str(e)[:100]}",
+            "arreglo": "En la instancia:  ollama serve",
+        })
+
+    if MODELO not in instalados:
+        return jsonify({
+            "status": "degradado",
+            "modelo": MODELO,
+            "detalle": f"'{MODELO}' no esta instalado",
+            "instalados": instalados,
+            "arreglo": f"En la instancia:  ollama pull {MODELO}",
+        })
+
+    return jsonify({
+        "status": "ok",
+        "modelo": MODELO,
+        "max_tokens": MAX_TOKENS,
+        "keep_alive": KEEP_ALIVE,
+    })
     return jsonify({"status": "sin escribir", "modelo": MODELO})
 
 

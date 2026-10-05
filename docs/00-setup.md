@@ -62,7 +62,8 @@ para todos. Esa es media razón de que el curso funcione con 30 laptops distinta
 **Por ahora.** Al final del módulo vas a tener que hacer correr todo esto en tu propia
 máquina, y va a ser un ejercicio, no un paso del setup: no habrá un script que lo haga por ti.
 Para entonces vas a saber exactamente qué necesita el producto para funcionar — y averiguar
-cómo instalarlo en *tu* sistema es justo la prueba de que lo entendiste.
+cómo instalarlo en *tu* sistema es justo la prueba de que lo entendiste. Cuando llegues ahí,
+el mapa está en **[en-tu-maquina.md](en-tu-maquina.md)**.
 
 ### Si usas Windows: Git Bash como terminal de VS Code
 
@@ -143,12 +144,117 @@ git remote add origin https://github.com/TU-USUARIO/TU-REPO.git
 git push -u origin main
 ```
 
-Funciona igual, con una diferencia que se nota más adelante: **no tienes el remoto `curso`**,
-así que si publico una corrección tienes que agregarlo a mano para traerla:
+Funciona igual, con una diferencia que se nota en la siguiente sección: **tu repositorio no
+comparte historia con el mío**, así que traer material nuevo se hace de otra forma.
+
+---
+
+## Traer material nuevo del curso
+
+**Esto lo vas a usar varias veces durante el módulo**, porque el material llega por partes:
+el backend primero, el frontend después. No hace falta volver a clonar nada ni empezar de
+cero — y sobre todo, **no vas a perder el código que ya escribiste**.
+
+Hay dos formas. **Empieza por la primera**: funciona igual para todo el mundo, sin importar
+cómo bajaste el curso ni qué remotos tengas.
+
+### Forma 1 — descargar y copiar (la que siempre funciona)
+
+**1. Baja el curso otra vez.** En
+[github.com/vsosahdz/TC3009-Part2-2026](https://github.com/vsosahdz/TC3009-Part2-2026),
+botón verde **Code** → **Download ZIP**. Descomprímelo. Te deja una carpeta llamada
+`TC3009-Part2-2026-main`.
+
+**2. Copia a tu proyecto las carpetas del curso.** Puedes arrastrarlas en el explorador de
+archivos, o desde la terminal, estando en tu proyecto:
 
 ```bash
-git remote add curso https://github.com/vsosahdz/TC3009-Part2-2026.git
+cp -r ~/Downloads/TC3009-Part2-2026-main/frontend .
+cp -r ~/Downloads/TC3009-Part2-2026-main/docs .
+cp -r ~/Downloads/TC3009-Part2-2026-main/setup .
+cp    ~/Downloads/TC3009-Part2-2026-main/run .
 ```
+
+> **`backend/` NO se copia.** Esa carpeta es tuya: ahí están los `COMPLETA` que escribiste.
+> Copiarla encima borraría tu trabajo y te devolvería el esqueleto vacío. Es el único error
+> grave que se puede cometer en este paso, así que léelo dos veces.
+>
+> Las otras cuatro sí se copian enteras sin miedo, porque son material del curso y tú no las
+> editas: `frontend/` es el esqueleto nuevo, `docs/` son las guías, `setup/` y `run` son las
+> herramientas.
+
+**3. Súbelo a tu repositorio**, desde tu proyecto:
+
+```bash
+git add -A
+git commit -m "material nuevo del curso"
+git push
+```
+
+**4. Y tráelo a la instancia:**
+
+```bash
+git pull
+bash setup/bootstrap.sh    # por si el material nuevo necesita algo que no tenías
+./run restart
+```
+
+Comprueba antes de subir que no te llevas por delante tu backend:
+
+```bash
+git status
+```
+
+Si en la lista aparece `backend/app.py`, copiaste de más. Recupéralo con
+`git checkout -- backend/app.py` y vuelve a hacer el `git add`.
+
+### Forma 2 — con git, si te sientes cómodo
+
+Hace lo mismo en dos comandos y sin bajar nada, pero depende de cómo montaste tu
+repositorio. Mira qué remotos tienes:
+
+```bash
+git remote -v
+```
+
+**Si ves uno llamado `curso`** (seguiste la opción A):
+
+```bash
+git fetch curso
+git merge curso/main --no-edit
+```
+
+Git junta lo nuevo del curso con lo tuyo. Lo que tú escribiste y yo no toqué se queda igual;
+lo que yo añadí aparece; y si los dos tocamos el mismo archivo en sitios distintos —lo
+normal— los combina sin preguntarte.
+
+**Si no ves `curso`** (bajaste el ZIP), tu repositorio y el mío no comparten historia y un
+`merge` ni siquiera arranca: `fatal: refusing to merge unrelated histories`. Trae los
+archivos por ruta:
+
+```bash
+git remote add curso https://github.com/vsosahdz/TC3009-Part2-2026.git   # una sola vez
+git fetch curso
+git checkout curso/main -- frontend/ docs/ setup/ run README.md
+```
+
+En los dos casos, termina con `git add -A && git commit -m "..." && git push`.
+
+> **Si ves esto:**
+>
+> ```
+> error: Your local changes to the following files would be overwritten by merge:
+> 	run
+> Please commit your changes or stash them before you merge.
+> ```
+>
+> Tienes cambios sin guardar en un archivo que el curso también cambió. Git **no hizo
+> nada** — te está protegiendo. Guarda lo tuyo y repite:
+>
+> ```bash
+> git add -A && git commit -m "lo mio"
+> git merge curso/main --no-edit
+> ```
 
 ---
 

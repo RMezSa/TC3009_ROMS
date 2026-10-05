@@ -447,46 +447,36 @@ Son **dos** `COMPLETA` y ningún archivo que escribas de cero: el esqueleto est�
 
 ### Primero, trae el material de la fase 2
 
-Cuando clonaste el curso, `frontend/` todavía no existía. Hay que traerlo, y cómo
-depende de qué opción seguiste en el setup.
+Cuando clonaste el curso, `frontend/` todavía no existía. Hay que traerlo.
 
-**Opción A** — tienes el remoto `curso`. Compruébalo con `git remote -v`:
-
-```bash
-git fetch curso
-git merge curso/main --no-edit
-```
-
-Tu `backend/app.py` **no se pierde**. Lo que cambió del curso en ese archivo son
-comentarios de arriba del todo, lejos de tus `COMPLETA`, y git junta las dos cosas solo.
-Si alguna vez hubiera un conflicto de verdad, git te dice en qué archivo y deja las dos
-versiones marcadas: la tuya va entre `<<<<<<< HEAD` y `=======`.
-
-**Opción B** — bajaste el ZIP, así que tu repositorio no comparte historia con el mío y
-un `merge` ni siquiera arranca:
-
-```
-fatal: refusing to merge unrelated histories
-```
-
-No es un error tuyo, es git diciendo la verdad: son dos árboles distintos. Trae solo los
-archivos del curso, por ruta:
+**Baja el ZIP y copia la carpeta.** En
+[github.com/vsosahdz/TC3009-Part2-2026](https://github.com/vsosahdz/TC3009-Part2-2026),
+botón verde **Code** → **Download ZIP**. Descomprime: te deja una carpeta
+`TC3009-Part2-2026-main`. Copia a tu proyecto estas cuatro cosas —arrastrándolas en el
+explorador de archivos, o desde la terminal estando en tu proyecto:
 
 ```bash
-git remote add curso https://github.com/vsosahdz/TC3009-Part2-2026.git   # una sola vez
-git fetch curso
-git checkout curso/main -- frontend/ docs/ setup/ run README.md
+cp -r ~/Downloads/TC3009-Part2-2026-main/frontend .
+cp -r ~/Downloads/TC3009-Part2-2026-main/docs .
+cp -r ~/Downloads/TC3009-Part2-2026-main/setup .
+cp    ~/Downloads/TC3009-Part2-2026-main/run .
 ```
 
-`backend/` no está en esa lista, a propósito: ese archivo es tuyo. Y usa esto **ahora**,
-antes de tocar el frontend — más adelante sobrescribiría lo que hubieras escrito en
-`frontend/src/`.
+> **`backend/` NO se copia.** Ahí están tus `COMPLETA` de la fase 1. Copiarla encima te
+> devolvería el esqueleto vacío y perderías el trabajo. Es el único error grave de este
+> paso.
 
-**Los dos casos siguen igual.** En tu computadora:
+Comprueba que no te llevaste tu backend por delante, y súbelo:
 
 ```bash
-git add -A && git commit -m "material de la fase 2" && git push
+git status                 # 'backend/app.py' NO debe aparecer en la lista
+git add -A
+git commit -m "material de la fase 2"
+git push
 ```
+
+Si `backend/app.py` sí aparece, copiaste de más: `git checkout -- backend/app.py` y repite
+el `git add`.
 
 Y en la instancia, donde ahora hace falta Node:
 
@@ -496,18 +486,10 @@ bash setup/bootstrap.sh    # ya está casi todo; ahora añade Node y el frontend
 ./run restart
 ```
 
-```
-   frontend/
-     index.html          la página. Cuatro líneas, y una de ellas carga main.tsx
-     vite.config.ts      el servidor de desarrollo: puerto 3000, escucha fuera
-     tsconfig.json       cómo se compila TypeScript
-     package.json        las dependencias, con versiones exactas
-     src/
-       main.tsx          engancha React al <div id="root">
-       styles.css        el aspecto. Tócalo si quieres, no cambia nada de lo demás
-       api.ts            ◀── COMPLETA 4   la costura con el backend
-       App.tsx           ◀── COMPLETA 5   dónde vive la conversación
-```
+> **¿Prefieres hacerlo con git?** Si tienes el remoto `curso`, son dos comandos:
+> `git fetch curso && git merge curso/main --no-edit`. Está explicado, con el caso del ZIP
+> y qué hacer si se queja, en [00-setup.md → Traer material nuevo del
+> curso](00-setup.md#traer-material-nuevo-del-curso).
 
 ### Qué se instaló, y por qué eso
 
@@ -553,11 +535,16 @@ algo y dale a Enviar:
 
 ```
 No se pudo responder.
-COMPLETA 4: falta la llamada a http://TU-IP:8080/api/chat, en src/api.ts
+COMPLETA 4: falta enviar el mensaje. Esta en src/App.tsx.
 ```
 
 **Eso es lo correcto.** El esqueleto compila y corre; lo que falta lo dice él mismo, en
-la pantalla, con el archivo. No vas a tener que adivinar dónde estabas.
+la pantalla, con el archivo y todo. No vas a tener que adivinar dónde estabas.
+
+Y los dos huecos están **encadenados**: en cuanto llenes el `COMPLETA 4`, el mismo botón
+te va a mandar al `COMPLETA 5`, y cuando llenes ese, contesta el modelo. Si en algún
+momento te pierdes, manda un mensaje y lee lo que sale: la aplicación te dice en qué paso
+estás.
 
 La cabecera distingue **tres** estados, y conviene saber leerla porque ahorra buscar
 donde no es:
@@ -568,7 +555,82 @@ donde no es:
 | `el backend vive, pero Ollama no contesta` | el 8080 contesta, el 11434 no | `ollama serve` |
 | `el backend no responde` | el 8080 no contesta | `./run status`, `./run logs api` |
 
-### `COMPLETA 4` — la costura
+### `COMPLETA 4` — dónde vive la conversación
+
+Abre `src/App.tsx`. Arriba del componente están las cinco piezas de estado, ya escritas:
+
+```tsx
+  const [mensajes, setMensajes] = useState<Mensaje[]>([]);
+  const [texto, setTexto] = useState("");
+  const [esperando, setEsperando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [estado, setEstado] = useState<Salud | null>(null);
+```
+
+`mensajes` es **la memoria del chat**. No está en el modelo, que no recuerda nada entre
+peticiones, ni en tu servidor, que decidiste que no guardara nada. Está en esta línea,
+en el navegador de quien lo usa.
+
+Lo que falta es la función que la mueve:
+
+```tsx
+  async function mandar(e: FormEvent) {
+    e.preventDefault(); // sin esto el navegador recarga la pagina entera
+    const pregunta = texto.trim();
+    if (!pregunta || esperando) return; // sin envios duplicados
+
+    // La pregunta aparece YA, antes de que el modelo conteste. En una maquina
+    // que tarda medio minuto, ver tu propio mensaje es la diferencia entre
+    // "esta pensando" y "se rompio".
+    const conPregunta: Mensaje[] = [...mensajes, { role: "user", content: pregunta }];
+    setMensajes(conPregunta);
+    setTexto("");
+    setError(null);
+    setEsperando(true);
+
+    try {
+      const r = await enviar(conPregunta);
+      setMensajes([...conPregunta, { role: "assistant", content: r.respuesta }]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setEsperando(false);
+    }
+  }
+```
+
+Cuatro decisiones, y ninguna es de estilo.
+
+**`conPregunta` es una variable, no `mensajes` otra vez.** `setMensajes` no cambia
+`mensajes` al instante: React vuelve a dibujar y en la pasada *siguiente* la variable
+vale otra cosa. Si en el `try` escribieras `[...mensajes, respuesta]`, estarías usando
+la lista de antes —sin la pregunta— y la perderías. Este es el error más común de React
+y no da ningún aviso: simplemente desaparecen mensajes.
+
+**Pintar antes de llamar.** El `setMensajes(conPregunta)` va *antes* del `await`. A seis
+tokens por segundo, media respuesta es medio minuto; una pantalla que no se mueve en ese
+rato no parece lenta, parece rota.
+
+**`finally`.** Si `enviar()` lanza y `setEsperando(false)` estuviera solo en el camino
+bueno, el botón se quedaría deshabilitado para siempre y habría que recargar la página.
+Un error recuperable convertido en uno fatal, por dónde pusiste una línea.
+
+**El error se guarda, no se esconde.** `err.message` es el texto que escribiste en la
+fase 1 —`ollama serve`, `ollama pull ...`— y llega hasta la pantalla sin que nadie lo
+traduzca. Todo ese trabajo del backend valía para esto.
+
+Guarda y manda un mensaje. **Todavía no contesta el modelo**, y la pantalla te dice por
+qué:
+
+```
+No se pudo responder.
+COMPLETA 5: falta la llamada a http://TU-IP:8080/api/chat, en src/api.ts (iba a mandar 1 mensaje(s))
+```
+
+Ese es el `enviar()` que acabas de llamar y que aún está vacío. Tu `try/catch` funciona
+—atrapó el error y lo pintó— y te acaba de señalar el siguiente hueco.
+
+### `COMPLETA 5` — la costura
 
 Todo lo que el frontend sabe del servidor cabe en una función. Abre `src/api.ts`:
 
@@ -619,70 +681,6 @@ La IP pública de tu instancia cambia cada vez que el laboratorio la reinicia. S
 hubiera una IP literal, la aplicación dejaría de funcionar en cada sesión — y el
 síntoma sería un error de red que no se parece en nada a la causa. El puerto sí es
 distinto, y por eso el navegador aplica CORS: 3000 y 8080 son dos orígenes.
-
-### `COMPLETA 5` — dónde vive la conversación
-
-Abre `src/App.tsx`. Arriba del componente están las cinco piezas de estado, ya escritas:
-
-```tsx
-  const [mensajes, setMensajes] = useState<Mensaje[]>([]);
-  const [texto, setTexto] = useState("");
-  const [esperando, setEsperando] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [estado, setEstado] = useState<Salud | null>(null);
-```
-
-`mensajes` es **la memoria del chat**. No está en el modelo, que no recuerda nada entre
-peticiones, ni en tu servidor, que decidiste que no guardara nada. Está en esta línea,
-en el navegador de quien lo usa.
-
-Lo que falta es la función que la mueve:
-
-```tsx
-  async function mandar(e: React.FormEvent) {
-    e.preventDefault(); // sin esto el navegador recarga la pagina entera
-    const pregunta = texto.trim();
-    if (!pregunta || esperando) return; // sin envios duplicados
-
-    // La pregunta aparece YA, antes de que el modelo conteste. En una maquina
-    // que tarda medio minuto, ver tu propio mensaje es la diferencia entre
-    // "esta pensando" y "se rompio".
-    const conPregunta: Mensaje[] = [...mensajes, { role: "user", content: pregunta }];
-    setMensajes(conPregunta);
-    setTexto("");
-    setError(null);
-    setEsperando(true);
-
-    try {
-      const r = await enviar(conPregunta);
-      setMensajes([...conPregunta, { role: "assistant", content: r.respuesta }]);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setEsperando(false);
-    }
-  }
-```
-
-Cuatro decisiones, y ninguna es de estilo.
-
-**`conPregunta` es una variable, no `mensajes` otra vez.** `setMensajes` no cambia
-`mensajes` al instante: React vuelve a dibujar y en la pasada *siguiente* la variable
-vale otra cosa. Si en el `try` escribieras `[...mensajes, respuesta]`, estarías usando
-la lista de antes —sin la pregunta— y la perderías. Este es el error más común de React
-y no da ningún aviso: simplemente desaparecen mensajes.
-
-**Pintar antes de llamar.** El `setMensajes(conPregunta)` va *antes* del `await`. A seis
-tokens por segundo, media respuesta es medio minuto; una pantalla que no se mueve en ese
-rato no parece lenta, parece rota.
-
-**`finally`.** Si `enviar()` lanza y `setEsperando(false)` estuviera solo en el camino
-bueno, el botón se quedaría deshabilitado para siempre y habría que recargar la página.
-Un error recuperable convertido en uno fatal, por dónde pusiste una línea.
-
-**El error se guarda, no se esconde.** `err.message` es el texto que escribiste en la
-fase 1 —`ollama serve`, `ollama pull ...`— y llega hasta la pantalla sin que nadie lo
-traduzca. Todo ese trabajo del backend valía para esto.
 
 ### Lo que ya está escrito, y conviene leer
 
@@ -803,8 +801,8 @@ git pull            # ¿de verdad llegó lo que escribiste?
 | `"arreglo": "ollama serve"` | Ollama no está corriendo |
 | `"arreglo": "ollama pull ..."` | El modelo no está descargado |
 | Tarda muchísimo | Normal. Baja `OLLAMA_MAX_TOKENS` o usa un modelo más chico |
-| `COMPLETA 4` en la pantalla | El `COMPLETA 4` sigue vacío |
-| `COMPLETA 5` en la pantalla | El `COMPLETA 5` sigue vacío |
+| `COMPLETA 4` en la pantalla | El `COMPLETA 4` sigue vacío (`src/App.tsx`) |
+| `COMPLETA 5` en la pantalla | El `COMPLETA 5` sigue vacío (`src/api.ts`) |
 | La cabecera dice «el backend no responde» | El 3000 vive, el 8080 no. `./run logs api` |
 | `Failed to fetch` en la consola del navegador | El backend no contesta, o el puerto 8080 no está abierto en el *security group* |
 | Los mensajes desaparecen al responder | Leíste `mensajes` después de `setMensajes`. Es el `conPregunta` del `COMPLETA 5` |

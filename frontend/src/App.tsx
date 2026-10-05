@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { enviar, salud, type Mensaje, type Salud } from "./api";
 
 export default function App() {
@@ -29,10 +29,10 @@ export default function App() {
     finRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [mensajes, esperando]);
 
-  async function mandar(e: React.FormEvent) {
+  async function mandar(e: FormEvent) {
     e.preventDefault(); // sin esto el navegador recarga la pagina entera
 
-    // COMPLETA 5 — manda la pregunta y guarda la respuesta.
+    // COMPLETA 4 — manda la pregunta y guarda la respuesta.
     //
     // El orden importa mas que el codigo. Son seis pasos:
     //
@@ -56,7 +56,7 @@ export default function App() {
     // queda deshabilitado para siempre y la pagina hay que recargarla.
     setMensajes(mensajes);
     setEsperando(false);
-    setError("COMPLETA 5: falta enviar el mensaje. Esta en src/App.tsx.");
+    setError("COMPLETA 4: falta enviar el mensaje. Esta en src/App.tsx.");
   }
 
   return (
@@ -66,7 +66,7 @@ export default function App() {
         <p>
           {estado === null
             ? "el backend no responde"
-            : estado.status === "ok"
+            : estado.status === "ok" && estado.modelo
               ? `modelo ${estado.modelo}`
               : "el backend vive, pero Ollama no contesta"}
         </p>

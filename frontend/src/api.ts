@@ -1,7 +1,7 @@
 // La costura con el backend. El unico archivo del frontend que sabe que existe
 // un servidor: si mañana cambia la URL o el formato, se cambia aqui y nada mas.
 //
-// Hay 1 COMPLETA en este archivo.
+// Hay 1 COMPLETA en este archivo (el ultimo).
 
 // Un mensaje de la conversacion.
 //
@@ -39,7 +39,7 @@ export type Salud = {
 const API = `http://${window.location.hostname}:8080`;
 
 export async function enviar(messages: Mensaje[]): Promise<Respuesta> {
-  // COMPLETA 4 — habla con el backend.
+  // COMPLETA 5 — habla con el backend.
   //
   // POST a `${API}/api/chat` con:
   //
@@ -56,7 +56,7 @@ export async function enviar(messages: Mensaje[]): Promise<Respuesta> {
   // que hacer. Los dos tienen que llegar a la pantalla -- quedarte solo con el
   // primero es callar justo la parte util, que ya escribiste en la fase 1.
   throw new Error(
-    `COMPLETA 4: falta la llamada a ${API}/api/chat, en src/api.ts ` +
+    `COMPLETA 5: falta la llamada a ${API}/api/chat, en src/api.ts ` +
       `(iba a mandar ${messages.length} mensaje(s))`,
   );
 }

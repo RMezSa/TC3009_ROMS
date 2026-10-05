@@ -89,7 +89,14 @@ case "${1:-}" in
         [ -s \"\$NVM_DIR/nvm.sh\" ] && . \"\$NVM_DIR/nvm.sh\"
         cd '$AQUI/frontend' && exec npm run dev"
     elif [[ -f "$AQUI/frontend/package.json" ]]; then
-      aviso "frontend/ esta ahi pero sin dependencias. Corre:  bash setup/bootstrap.sh"
+      # En la instancia lo arregla el bootstrap. En una laptop ese script se
+      # niega a correr --es de Ubuntu-- asi que mandarla ahi seria un callejon
+      # sin salida.
+      if [[ "$(uname -s)" == "Linux" ]]; then
+        aviso "frontend/ esta ahi pero sin dependencias. Corre:  bash setup/bootstrap.sh"
+      else
+        aviso "frontend/ esta ahi pero sin dependencias. Corre:  cd frontend && npm install"
+      fi
     else
       echo "  (el frontend llega en la fase 2)"
     fi

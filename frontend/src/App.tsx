@@ -31,32 +31,26 @@ export default function App() {
 
   async function mandar(e: FormEvent) {
     e.preventDefault(); // sin esto el navegador recarga la pagina entera
+    const pregunta = texto.trim();
+    if (!pregunta || esperando) return; // sin envios duplicados
 
-    // COMPLETA 4 — manda la pregunta y guarda la respuesta.
-    //
-    // El orden importa mas que el codigo. Son seis pasos:
-    //
-    //   1. saca texto.trim(); si esta vacio o ya esperando, no hagas nada
-    //   2. añade {role: "user"} a la lista y GUARDALA en una variable
-    //   3. pinta esa lista ya, vacia el input, limpia el error, esperando=true
-    //   4. await enviar(esaLista)
-    //   5. añade {role: "assistant", content: r.respuesta}
-    //   6. pase lo que pase, esperando=false
-    //
-    // El paso 3 antes del 4 es deliberado: tu pregunta aparece ANTES de que el
-    // modelo conteste. En una maquina que tarda medio minuto, ver tu propio
-    // mensaje es la diferencia entre "esta pensando" y "se rompio".
-    //
-    // El paso 2 guarda la lista en una variable en vez de leer 'mensajes'
-    // despues: setMensajes no actualiza la variable al instante, y si en el
-    // paso 5 volvieras a leer 'mensajes' tendrias la lista de ANTES --sin la
-    // pregunta-- y la perderias.
-    //
-    // El 6 va en un finally. Si enviar() falla y no lo pones, el boton se
-    // queda deshabilitado para siempre y la pagina hay que recargarla.
-    setMensajes(mensajes);
-    setEsperando(false);
-    setError("COMPLETA 4: falta enviar el mensaje. Esta en src/App.tsx.");
+    // La pregunta aparece YA, antes de que el modelo conteste. En una maquina
+    // que tarda medio minuto, ver tu propio mensaje es la diferencia entre
+    // "esta pensando" y "se rompio".
+    const conPregunta: Mensaje[] = [...mensajes, { role: "user", content: pregunta }];
+    setMensajes(conPregunta);
+    setTexto("");
+    setError(null);
+    setEsperando(true);
+
+    try {
+      const r = await enviar(conPregunta);
+      setMensajes([...conPregunta, { role: "assistant", content: r.respuesta }]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setEsperando(false);
+    }
   }
 
   return (

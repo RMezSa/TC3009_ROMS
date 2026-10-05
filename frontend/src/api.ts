@@ -39,26 +39,22 @@ export type Salud = {
 const API = `http://${window.location.hostname}:8080`;
 
 export async function enviar(messages: Mensaje[]): Promise<Respuesta> {
-  // COMPLETA 5 — habla con el backend.
-  //
-  // POST a `${API}/api/chat` con:
-  //
-  //   method:  "POST"
-  //   headers: {"Content-Type": "application/json"}
-  //   body:    JSON.stringify({ messages })
-  //
-  // Mandas la conversacion ENTERA, no solo la ultima pregunta. El backend no
-  // recuerda nada --lo decidiste asi en la fase 1-- de modo que quien recuerda
-  // es esto. Si mandaras solo el ultimo mensaje, el chat no tendria memoria.
-  //
-  // Y cuando la respuesta no sea ok, lanza un Error con lo que dice el
-  // backend. Ojo a que son DOS campos: "error" dice que paso y "arreglo" dice
-  // que hacer. Los dos tienen que llegar a la pantalla -- quedarte solo con el
-  // primero es callar justo la parte util, que ya escribiste en la fase 1.
-  throw new Error(
-    `COMPLETA 5: falta la llamada a ${API}/api/chat, en src/api.ts ` +
-      `(iba a mandar ${messages.length} mensaje(s))`,
-  );
+  const r = await fetch(`${API}/api/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ messages }),
+  });
+
+  const datos = await r.json().catch(() => ({}));
+
+  if (!r.ok) {
+    // El backend dice QUE esta mal y, cuando puede, COMO arreglarlo, en dos
+    // campos separados. Los dos van a la pantalla: tirarlos y lanzar un
+    // "error 500" generico desperdicia justo el trabajo de la fase 1.
+    const que = datos.error ?? `el servidor respondio ${r.status}`;
+    throw new Error(datos.arreglo ? `${que} — ${datos.arreglo}` : que);
+  }
+  return datos as Respuesta;
 }
 
 export async function salud(): Promise<Salud> {

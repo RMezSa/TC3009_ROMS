@@ -1,0 +1,113 @@
+#!/usr/bin/env bash
+#
+# Comandos de la fase 3.
+#
+#   ./run start     levanta el backend en el 8080
+#   ./run stop      lo detiene
+#   ./run restart   las dos cosas
+#   ./run status    que esta corriendo
+#   ./run logs      ultimas lineas del backend
+#   ./run salud     pregunta al backend por Ollama Y por la base
+#   ./run tablas    que hay en tu PostgreSQL
+#   ./run psql      te abre una sesion contra tu base
+#
+# Esta fase no tiene frontend: se prueba con curl y con psql. Es a proposito --
+# lo que se aprende aqui pasa en el servidor y en la base, y una pantalla solo
+# lo taparia.
+
+set -uo pipefail
+
+AQUI="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+RUN_DIR="$AQUI/.run"
+mkdir -p "$RUN_DIR"
+
+VERDE="\033[32m"; AMARILLO="\033[33m"; ROJO="\033[31m"; RESET="\033[0m"
+ok()    { echo -e "  ${VERDE}OK${RESET}    $1"; }
+aviso() { echo -e "  ${AMARILLO}AVISO${RESET} $1"; }
+mal()   { echo -e "  ${ROJO}FALLA${RESET} $1"; }
+
+PY="${PY:-$AQUI/.venv/bin/python}"
+OLLAMA="${OLLAMA_URL:-http://localhost:11434}"
+
+vive() { [[ -f "$RUN_DIR/api.pid" ]] && kill -0 "$(cat "$RUN_DIR/api.pid")" 2>/dev/null; }
+
+case "${1:-}" in
+  start)
+    if [[ ! -x "$PY" ]]; then
+      if [[ "$(uname -s)" != "Linux" ]]; then
+        mal "esto se corre en la INSTANCIA, no en tu computadora."
+        echo
+        echo "        Aqui:            git add -A && git commit -m \"...\" && git push"
+        echo "        En la instancia: git pull && ./run restart"
+      else
+        mal "no encuentro el entorno en $PY"
+        echo "        Corre:  bash setup/instalar.sh"
+      fi
+      exit 1
+    fi
+    if [[ -z "${DATABASE_URL:-}" ]]; then
+      aviso "DATABASE_URL no esta puesta: el chat va a responder 503."
+      echo "        export DATABASE_URL=\"postgresql://postgres:CLAVE@TU-ENDPOINT:5432/postgres\""
+    fi
+    vive && { aviso "ya corria (pid $(cat "$RUN_DIR/api.pid"))"; exit 0; }
+    nohup "$PY" "$AQUI/backend/app.py" > "$RUN_DIR/api.log" 2>&1 &
+    echo $! > "$RUN_DIR/api.pid"
+    sleep 2
+    vive && ok "backend arrancado (pid $(cat "$RUN_DIR/api.pid"))" \
+         || { mal "no arranco. Mira:  ./run logs"; exit 1; }
+    ip="$(curl -s --max-time 3 http://169.254.169.254/latest/meta-data/public-ipv4 2>/dev/null || true)"
+    [[ -n "$ip" ]] && echo "  http://$ip:8080/api/health"
+    ;;
+
+  stop)
+    algo=0
+    if [[ -f "$RUN_DIR/api.pid" ]]; then
+      kill -TERM "$(cat "$RUN_DIR/api.pid")" 2>/dev/null && algo=1
+      sleep 1; kill -KILL "$(cat "$RUN_DIR/api.pid")" 2>/dev/null
+      rm -f "$RUN_DIR/api.pid"
+    fi
+    if command -v lsof >/dev/null 2>&1; then
+      h="$(lsof -ti:8080 2>/dev/null || true)"
+      [[ -n "$h" ]] && { echo "$h" | xargs kill -KILL 2>/dev/null; algo=1; }
+    fi
+    (( algo )) && ok "detenido" || echo "  no estaba corriendo"
+    ;;
+
+  restart) "$0" stop; echo; "$0" start ;;
+
+  status)
+    echo
+    vive && ok "backend corriendo (pid $(cat "$RUN_DIR/api.pid"))" || echo "  --    detenido"
+    curl -s -m 3 -o /dev/null -w "  backend :8080 -> %{http_code}\n" localhost:8080/api/health \
+      || echo "  backend :8080 -> sin respuesta"
+    curl -s -m 3 -o /dev/null -w "  Ollama  :11434 -> %{http_code}\n" "$OLLAMA/api/tags" \
+      || echo "  Ollama  :11434 -> sin respuesta"
+    if [[ -n "${DATABASE_URL:-}" ]]; then
+      psql "$DATABASE_URL" -tAc "select 1" >/dev/null 2>&1 \
+        && echo "  base          -> responde" || echo "  base          -> NO responde"
+    else
+      echo "  base          -> DATABASE_URL sin poner"
+    fi
+    echo
+    ;;
+
+  logs)   exec tail -n "${2:-40}" -f "$RUN_DIR/api.log" ;;
+  salud)  curl -s localhost:8080/api/health; echo ;;
+
+  tablas)
+    [[ -z "${DATABASE_URL:-}" ]] && { mal "falta DATABASE_URL"; exit 1; }
+    psql "$DATABASE_URL" -c "\dt"
+    psql "$DATABASE_URL" -c "
+      SELECT c.id, left(c.titulo, 40) AS titulo, count(m.id) AS mensajes,
+             coalesce(sum(m.tokens), 0) AS tokens
+        FROM conversacion c LEFT JOIN mensaje m ON m.conversacion_id = c.id
+       GROUP BY c.id ORDER BY c.id DESC LIMIT 10;" 2>/dev/null
+    ;;
+
+  psql)
+    [[ -z "${DATABASE_URL:-}" ]] && { mal "falta DATABASE_URL"; exit 1; }
+    exec psql "$DATABASE_URL"
+    ;;
+
+  *) sed -n '3,18p' "$AQUI/run" | sed 's/^# \{0,1\}//' ;;
+esac

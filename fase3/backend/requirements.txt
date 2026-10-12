@@ -1,0 +1,15 @@
+# La fase 3 entera. Versiones fijas para que las 30 instancias corran lo mismo.
+Flask==3.0.3
+Flask-Cors==4.0.1
+requests==2.32.3
+
+# PostgreSQL. 'binary' trae el driver compilado: no hace falta compilador.
+psycopg[binary]==3.2.13
+psycopg_pool==3.2.8
+
+# Los dos ejemplos de ejemplos/. Pesan ~50 MB y no arrastran torch:
+# el modelo lo pone Ollama, que ya tienes.
+langchain==0.3.30
+langchain-ollama==0.3.10
+langgraph==0.6.11
+langgraph-checkpoint-postgres==2.0.25

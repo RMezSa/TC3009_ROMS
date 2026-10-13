@@ -135,11 +135,6 @@ def chat():
         #   4. guarda la pregunta con db.guardar_mensaje(id, "user", texto)
         #
         # Deja el historial en una variable llamada 'historial'.
-        raise NotImplementedError(
-            "COMPLETA 3: falta enganchar la base en backend/app.py"
-        )
-    except NotImplementedError:
-        raise
     except Exception as e:  # noqa: BLE001
         return jsonify({
             "error": "la base de datos no respondio",

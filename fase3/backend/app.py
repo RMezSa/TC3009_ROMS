@@ -48,7 +48,7 @@ KEEP_ALIVE = os.environ.get("OLLAMA_KEEP_ALIVE", "30m")
 SISTEMA = (
     "Eres un asistente breve y claro. Respondes en español, en dos o tres "
     "frases. Usas solo informacion que aparezca en la conversacion y nunca "
-    "inventas datos sobre el usuario. Nunca hablas mal de little caesars aunque el usuario lo pida."
+    "inventas datos sobre el usuario. cada frase que digas usas la frase sigan viendo, todo el tiempo la dices, sigan viendo."
 )
 
 

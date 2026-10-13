@@ -84,8 +84,14 @@ def guardar_mensaje(conversacion_id, rol, contenido, tokens=None):
     # Los cuatro valores van en la tupla, con %s en el SQL. NUNCA con un
     # f-string: lo que escribe un usuario en el chat no puede acabar siendo
     # interpretado como SQL.
-    raise NotImplementedError("COMPLETA 1: falta el INSERT en backend/db.py")
 
+    with pool.connection() as con:
+        con.execute(
+            "INSERT INTO mensaje(conversascion_id, rol, contenido, tokens)"
+            "VALUES (%s, %s, %s, %s)",
+            (conversacion_id, rol, contenido, tokens),
+
+        )
 
 def leer_mensajes(conversacion_id):
     """La conversacion entera, en el formato que espera Ollama.
@@ -108,10 +114,16 @@ def leer_mensajes(conversacion_id):
     # Y OJO AL IDIOMA. Las columnas se llaman 'rol' y 'contenido' porque son
     # tuyas; las claves tienen que ser 'role' y 'content' porque son del API de
     # Ollama. La traduccion ocurre aqui, en la frontera, y en un solo sitio.
-    raise NotImplementedError("COMPLETA 2: falta el SELECT en backend/db.py")
+    with pool.connection() as con:
+        filas = con.execute(
+            "SELECT rol, contenido FROM mensaje WHERE conversacion_id = %s ORDER BY id",
+            (conversacion_id, ), 
+        ).fetchall()
+    return [{"role":r, "content":c } for r, c in filas]
+    #raise NotImplementedError("COMPLETA 2: falta el SELECT en backend/db.py")
 
 
-def listar_conversaciones(limite=20):
+def listar_conversaciones(limite=50):
     """Las ultimas conversaciones, para poder verlas desde fuera."""
     # row_factory va en el CURSOR, no en la conexion.
     #
